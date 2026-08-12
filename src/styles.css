@@ -1,14 +1,66 @@
 body {
-  font-family: "Times New Roman";
+  font-family: "Arial", sans-serif;
   text-align: center;
+  padding: 0.5rem 0.3rem;
+
+  --bg: #f7f7f7;
+  --text: #1f2028;
+  --button-bg: #f7f7f7;
+  --button-text: #1f2028;
+  --button-border: lightgray;
+
+  --accent: #FE273F;
+
+  background: var(--bg);
+  color: var(--text);
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    --bg: #1f2028;
+    --text: #F3F3F3;
+    --button-bg: #1d2026;
+    --button-text: #F3F3F3;
+    --button-border: gray;
+  }
+}
+
+.title {
+  margin-top: 0;
+  font-size: large;
+  font-family: "Arial Black", Helvetica, sans-serif;
+  font-weight: 900;
+  font-stretch: condensed;
+
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+}
+
+hr {
+  width: 100%;
+  color: var(--button-border);
+  opacity: 0.5;
+}
+
+.blockButton {
+  padding: 1rem 0.5rem;
 }
 
 button {
   position: relative;
-  padding: 0.25rem 0.5 rem;
+  padding: 0.3rem 0.5rem;
   border: none;
-  color: black;
+  border-radius: 5px;
   cursor: pointer;
+  background: var(--button-bg);
+  color: var(--text);
+  font-size: 0.8rem;
+  margin: 0.4rem 0rem;
 }
 
 button::before {
@@ -18,52 +70,31 @@ button::before {
   top: -2px;
   width: calc(100% + 4px);
   height: calc(100% + 4px);
-  background-image: repeating-linear-gradient(
-  -45deg, grey 0%, grey 5%, transparent 5%, transparent 10%
-  );
+  background-color: var(--button-border);
   background-size: 15px, 15px;
   z-index: -1;
+  border-radius: inherit;
 }
 
+/* Based on: https://stackoverflow.com/a/52963366 */
 button:hover::before {
-  background-image: repeating-linear-gradient(
-  -45deg, red 0%, red 5%, transparent 5%, transparent 10%
-  );
-  animation: animate 2s infinite linear;
+  background-color: rgba(0, 0, 0, 0);
+  background-image: linear-gradient(90deg, var(--accent) 50%, transparent 50%), linear-gradient(90deg, var(--accent) 50%, transparent 50%), linear-gradient(0deg, var(--accent) 50%, transparent 50%), linear-gradient(0deg, var(--accent) 50%, transparent 50%);
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  background-size: 15px 2px, 15px 2px, 2px 15px, 2px 15px;
+  background-position: left top, right bottom, left bottom, right top;
+  animation: animate 0.5s infinite linear;
 }
 
 @keyframes animate {
   0% {
-    background-position: 0 0;
+    background-position: left top, right bottom, left bottom, right top;
   }
   100% {
-    background-position: 45% 45%;
+    background-position: left 15px top, right 15px bottom, left bottom 15px, right top 15px;
   }
 }
 
 #popup-content {
   width: 600px;
-}
-
-.item {
-  display: flex;
-  margin: 10px 0px;
-  align-items: center;
-}
-
-.item .bar {
-  width: 350px;
-  background-color: royalblue;
-  border-radius: 5px;
-  height: 30px;
-}
-
-.item .name {
-  width: 150px;
-  padding: 10px;
-}
-
-.item .time {
-  width: 100px;
-  padding: 10px;
 }

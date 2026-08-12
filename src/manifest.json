@@ -1,7 +1,7 @@
 {
   "name": "Caption Blocker",
   "version": "1.0.0",
-  "description": "Block or blurr unnecessary captions and subtitles.",
+  "description": "Block or blur unnecessary captions and subtitles.",
   "manifest_version": 3,
   "host_permissions": ["<all_urls>"],
   "permissions": [ "scripting", "webNavigation", "alarms", "activeTab", "storage", "tabs" ],

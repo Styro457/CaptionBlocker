@@ -9,7 +9,7 @@ import uuid
 from io import BytesIO
 
 import mariadb
-from flask import Flask, request
+from flask import Flask, Response, request
 from flask_cors import CORS, cross_origin
 from PIL import Image
 
@@ -33,7 +33,7 @@ def post_block():
     """Handle POST Requests"""
     if request.method == "POST":
         if "data" in request.json.keys():
-            save_image(request)
+            return save_image(request)
         else:
             return insert(request)
     return "ERROR"
@@ -137,13 +137,15 @@ def save_image(req_data):
     x_res, y_res, x_cord, y_cord, length, height = detect_captions(file)
     if (length == 0 or height == 0):
         print("No caption found in screenshot")
-        return 201
+        return Response("{Captions not detected in image.}", status=201, mimetype='application/json')
     screenshot_dict = {"video_id": video_id, "x_res": x_res, "y_res": y_res, "x_cord": x_cord,
                        "y_cord": y_cord, "length": length, "height": height}
     # screenshot_json = json.dumps(screenshot_dict)
     # Convert JSON formatted str into JSON type (to avoid type error)
     # screenshot_json = json.loads(str(screenshot_dict))
     insert(screenshot_dict)
+    # return 200
+    return Response("{Captions found, image saved, data inserted.}", status=200, mimetype='application/json')
     print("Request saved...")
 
 
@@ -207,7 +209,7 @@ def select(video_id):
         for row in cursor.fetchall()
     ]
     if r == []:
-        return 400
+        return Response("{No data for given URL.}", status=201, mimetype='application/json')
     cursor.connection.close()
     # return json.dumps(r[0] if r else None), 200
     # Return last row, by using -1

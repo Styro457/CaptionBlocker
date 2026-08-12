@@ -2,23 +2,67 @@
 // TODO: Create class to hold all variables relating to a caption blocker.
   // TODO: Give variables proper names, instead of "x" and "submissionHeight".
 // TODO: Send screenshot of video over to Python server for auto caption detection (if possible).
-// TODO: Store data somewhere in global, or in the CaptionBlocker class, to avoid reloading it on resize.
 window.addEventListener("load", go);
-window.addEventListener('resize', go);
-window.addEventListener('fullscreenchange', go);
+window.addEventListener('resize', go, true);
+window.addEventListener('fullscreenchange', go, true);
+window.navigation.addEventListener('navigate', reset);
 
 const URL = 'http://127.0.0.1:5000/videos';
-var CB = null;
+var V     = null;
 
-class CaptionBlocker {
-  constructor() {
-    this.x      = null;
-    this.y      = null;
-    this.height = null;
-    this.width  = null;
+class Video {
+  constructor(data, rect)
+  {
+    this.width  = data.x_res;
+    this.height = data.y_res;
+    this.CB     = new CaptionBlocker(data, rect);
   }
 
-  ClearVars(context) {
+  Resize(rect)
+  {
+    this.CB.Resize(this.width, this.height, rect);
+  }
+
+  Print()
+  {
+    console.log("================");
+    console.log("Printing Video..")
+    console.log("width: ", this.width);
+    console.log("height: ", this.height);
+    console.log("Video Printed...")
+    console.log("================");
+  }
+
+  ClearVars()
+  {
+    this.width  = null;
+    this.height = null;
+    this.CB.ClearVars();
+  }
+}
+
+// TODO: Add member variables for video height and width
+class CaptionBlocker {
+  constructor(data, rect)
+  {
+    let submissionsWidth  = data.x_res;
+    let submissionsHeight = data.y_res;
+    this.x = rect.left + (data.x_cord * rect.width  / submissionsWidth);
+    this.y = rect.top  + (data.y_cord * rect.height / submissionsHeight);
+    this.width  = data.length * rect.width  / submissionsWidth;
+    this.height = data.height * rect.height / submissionsHeight;
+  }
+
+  Print()
+  {
+    console.log("x: ", this.x);
+    console.log("y: ", this.y);
+    console.log("width: ", this.width);
+    console.log("height: ", this.height);
+  }
+
+  ClearVars(context)
+  {
     if (context == null) { return; }
     context.clearRect(0, 0, this.width, this.height); // Is this needed? Since the next line removed the canvas
     this.x      = null;
@@ -27,24 +71,23 @@ class CaptionBlocker {
     this.height = null;
   }
 
-  Draw(context) {
-    this.ClearVars();
-    let video = document.getElementsByClassName('video-stream html5-main-video')[0];
+  Draw(context)
+  {
+  let video = document.getElementsByClassName('video-stream html5-main-video')[0];
     let rect = video.getBoundingClientRect();
     let tmpCanvas = document.createElement('canvas');
-    this.SetVars(video, rect, tmpCanvas);
 
-    // Set offset using style:
-    // Source: https://www.reddit.com/r/learnjavascript/comments/uy3zvd/how_to_set_the_offset_of_an_element_with_vanilla/
-    // Source: https://www.javaspring.net/blog/how-to-set-the-offset-in-javascript/
+    // set offset using style:
+    // source: https://www.reddit.com/r/learnjavascript/comments/uy3zvd/how_to_set_the_offset_of_an_element_with_vanilla/
+    // source: https://www.javaspring.net/blog/how-to-set-the-offset-in-javascript/
     tmpCanvas.id = "CursorLayer";
     tmpCanvas.style.left = `${this.x}px`;
     tmpCanvas.style.top = `${this.y}px`;
     tmpCanvas.width = this.width;
     tmpCanvas.height = this.height;
-    tmpCanvas.style.zIndex = 8; // Do we need this?
-    tmpCanvas.style.position = "absolute"; // Do we need this? 
-    // canvas.style.border = "1px solid"; // Do we need this? 
+    tmpCanvas.style.zindex = 8; // do we need this?
+    tmpCanvas.style.position = "absolute"; // do we need this? 
+    // canvas.style.border = "1px solid"; // do we need this? 
 
     let body = document.getElementsByTagName("body")[0];
     body.appendChild(tmpCanvas);
@@ -55,7 +98,8 @@ class CaptionBlocker {
     return; 
   }
 
-  SetVars(video, rect, tmpCanvas) {
+  SetVars(data, rect)
+  {
     let submissionsWidth  = data.x_res;
     let submissionsHeight = data.y_res;
     this.x = rect.left + (data.x_cord * rect.width  / submissionsWidth);
@@ -63,6 +107,17 @@ class CaptionBlocker {
     this.width  = data.length * rect.width  / submissionsWidth;
     this.height = data.height * rect.height / submissionsHeight;
   }
+
+  Resize(x_res, y_res, rect)
+  {
+    let submissionsWidth  = x_res;
+    let submissionsHeight = y_res;
+    this.x = rect.left + (data.x_cord * rect.width  / submissionsWidth);
+    this.y = rect.top  + (data.y_cord * rect.height / submissionsHeight);
+    this.width  = data.length * rect.width  / submissionsWidth;
+    this.height = data.height * rect.height / submissionsHeight;
+  }
+
 }
 
 /**
@@ -91,16 +146,25 @@ function waitForElementToLoad(selector) {
 /**
  * Fetch data if null, then call drawRectangleFromAPI
  */
-async function go() {
-  let data;
-  if (data == null) {
+async function go(isResize)
+{
+  let data = null;
+  if (V == null) {
+    console.log("Video is null...");
     let video_id = extractYouTubeID(window.location.href);
-    if (video_id == null){
-      return;
-    }
-    await makeGetRequest(video_id);
+    if (video_id == null){ return; }
+    data = await makeGetRequest(video_id);
   }
-  drawRectangleFromAPI(data);
+  drawRectangleFromAPI(data, isResize);
+}
+
+/**
+ * Fetch data if null, then call drawRectangleFromAPI
+ */
+function reset() {
+  V.ClearVars();
+  V = null;
+  deleteCapper();
 }
 
 /**
@@ -123,34 +187,59 @@ function extractYouTubeID(videoURL) {
  * @param {String} YouTube video ID
  */
 async function makeGetRequest(video_id) {
+  let tmpData = null;
+  let resposne = null;
   try
   {
     // The parameter for fetch should be in this format:
     // http://127.0.0.1:5000/videos?video_id=video_id
-    const response = await fetch(URL + "?video_id=" + video_id);
+    // const response = await fetch(URL + "?video_id=" + video_id);
+    response = await fetch(URL + "?video_id=" + video_id);
     if (!response.ok) { throw new Error(`Response status: ${response.status}`); }
     data = await response.json();
+    tmpData = data;
   }
   catch (error)
   {
     console.error(error.message);
+    return null;
   }
+  
+  // console.log("response: ", response);
+  // console.log("tmpData: ", tmpData);
+  if (response == null || response.status != 200) { return null; }
+  return tmpData;
 }
 
 /**
  * Draw the rectangle according to the data given as a response to the API fetch
  * @param {data} response from the GET request
  */
-async function drawRectangleFromAPI(data) {
+async function drawRectangleFromAPI(data, isResize) {
   let video = document.getElementsByClassName('video-stream html5-main-video')[0];
   rect = video.getBoundingClientRect();
   let tmpCanvas = document.createElement('canvas');
-  
-  if (CB != null) { deleteCapper(); }
-  CB = new CaptionBlocker()
-  CB.SetVars(video, rect, tmpCanvas);
+
+  if (isResize)
+  {
+    deleteCapper();
+    V.Resize(rect);
+  }
+
+  if (V != null)
+  {
+    deleteCapper();
+  }
+
+  if (data != null) 
+  {
+    V = new Video(data, rect);
+  }
+
+  // V.CB.SetVars(data, rect);
   let ctx = tmpCanvas.getContext("2d");
-  CB.Draw(ctx);
+  V.CB.Draw(ctx);
+
   return; 
 }
 
@@ -158,7 +247,6 @@ async function drawRectangleFromAPI(data) {
  * Clear rectangle, remove the canvas, and set variables to null
  */
 function deleteCapper() {
-  console.log("Deleting caption blocker...");
   let body = document.getElementsByTagName("body")[0];
   // Set context, and keep removing child until none are left
   let removeCtx = document.getElementById("CursorLayer");
@@ -166,20 +254,22 @@ function deleteCapper() {
     body.removeChild(removeCtx);
     removeCtx = document.getElementById("CursorLayer");
   }
-  console.log("Caption blocker deleted...");
 }
 
 /**
  * To be called for when a user wants to submit an entry
  */
 function drawRectangleUsingMouse() {
+  console.log("User drawing with mouse...");
+  deleteCapper();
   // Draw rectangle using click and drag
   // Source: https://jsfiddle.net/eyaylagul/nho08juw/
   let video = document.getElementsByClassName('video-stream html5-main-video')[0];
   rect = video.getBoundingClientRect();
   var canvas = document.createElement('canvas');
 
-  canvas.id = "CursorLayer";
+  // canvas.id = "CursorLayer";
+  canvas.id = "DrawingCursorLayer";
   canvas.style.left = `${rect.left}px`;
   canvas.style.top = `${rect.top}px`;
   canvas.width = rect.width;
@@ -226,6 +316,10 @@ function drawRectangleUsingMouse() {
       drawingCtx.stroke();
     }
   });
+
+  reset();
+  go(false);
+  console.log("Drawing should be done...");
 }
 
 /**
@@ -304,7 +398,8 @@ function takeScreenshot(){
     let dataURI = can.toDataURL('image/jpeg'); // can also use 'image/png'
     var video_id = extractYouTubeID(window.location.href);
     if (video_id == null){ return; }
-    makePostRequest(video_id, dataURI);
+    let success = makePostRequest(video_id, dataURI);
+    if (success) { go(false); }
 
     let removeCtx = document.getElementById("myCanvas");
     while (removeCtx != null) {
@@ -324,6 +419,11 @@ async function makePostRequest(video_id, data){
     },
     body: JSON.stringify(dataJSON)
   })
+
+  if (response.status == 200) {
+    return true;
+  }
+  return false;
 }
 
 async function analyzePage() {
